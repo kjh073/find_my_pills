@@ -1,6 +1,6 @@
-const express = require('express') //express 모듈 가져옴
-const app = express() //함수를 이용해 새로운 app을 만듦
-const port = 3000 //3000번 포트를 백서버로 둠
+const express = require('express') 
+const app = express() 
+const port = 3000 
 const mysql = require('mysql')
 const dbconfig = require('./config/database.js')
 const bodyParser = require('body-parser')
@@ -10,6 +10,7 @@ const bodyParser = require('body-parser')
 const connection = mysql.createConnection(dbconfig)
 // app.use(express.static('public'));
 app.use(bodyParser.urlencoded({ extended: true }))
+const AWS = require('aws-sdk');
 
 
 connection.connect(function(err) {
@@ -25,9 +26,45 @@ app.get('/select', (req, res) => {
 	res.send('검색방법 선택')
 })
 
-app.get('/upload', (req, res) => {
-	res.send('이미지 업로드')
-})
+
+// 기본 설정으로 생성
+
+const { v4 } = require('uuid');
+
+//기본 설정으로 생성
+console.log(v4());
+const uuid = v4();
+
+AWS.config.update({
+	accessKeyId: "",
+	secretAccessKey: "",
+	region: 'ap-northeast-2', // ex) ap-northeast-2
+});
+const multer = require('multer');
+const multerS3 = require('multer-s3');
+
+const s3 = new AWS.S3();
+const upload = multer({  
+	storage: multerS3({       
+		s3: s3,
+		bucket: 'user-pills',
+		key: function (req, file, cb) {
+		cb(null, `${Date.now()}${uuid}`);
+		},
+	}),
+});
+
+app.post('/upload', upload.single('test'), (req, res) => {
+	const input = req.body
+	console.log(req.file);
+	// res.json({ url: req.file.location }); //file.location이 이미지 저장된 링크
+	connection.query(`insert into pill_image_url values(${input.id}, '${req.file.location}')`), (err, rows, fields) => {
+		if (err) {
+			return res.json({ success: false, err });
+		}
+		res.send(rows);
+	}
+});
 
 app.post('/search', (req, res) => {
 	const input = req.body
@@ -44,10 +81,13 @@ app.get('/loading', (req, res) => {
 
 app.post('/check', (req, res) => {
 	const input = req.body
-	connection.query('select * from pills where shape=? and color=?', [input.shape, input.color], (err, rows, fields) => {
-		if (err) throw err;
+	//식별문자 앞 뒤가 있네,, 뒷편 문자는 optional한디 그러면 어쨌든 빈값 들어오는거 고려해야
+	//분할선도 앞 뒤가 있네,,,
+	//sql문 줄여야할 것 같은데 escape vs ?
+	connection.query('select * from pills where char_front=? and line_front=? and shape=? pill_type=?and color=?', [input.shape, input.color], (err, rows, fields) => {
+		if(err) return res.json({ success: false, err })
 		res.send(rows)
-	// 클라이언트로 사진 전달
+	// 클라이언트로 식별번호나 약 이름 전달
 	})
 })
 
