@@ -3,6 +3,7 @@ const app = express()
 const port = 3000 
 const mysql = require('mysql')
 const dbconfig = require('./config/database.js')
+const s3config = require('./config/s3.js')
 const bodyParser = require('body-parser')
 // const router = express.Router();
 // const upload = require('./modules/multer');
@@ -27,19 +28,10 @@ app.get('/select', (req, res) => {
 })
 
 
-// 기본 설정으로 생성
-
 const { v4 } = require('uuid');
-
-//기본 설정으로 생성
 console.log(v4());
 const uuid = v4();
 
-AWS.config.update({
-	accessKeyId: "",
-	secretAccessKey: "",
-	region: 'ap-northeast-2', // ex) ap-northeast-2
-});
 const multer = require('multer');
 const multerS3 = require('multer-s3');
 
