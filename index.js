@@ -6,13 +6,10 @@ const dbconfig = require('./config/database.js')
 const s3config = require('./config/s3.js')
 const bodyParser = require('body-parser')
 // const router = express.Router();
-// const upload = require('./modules/multer');
+const upload = require('./modules/multer.js');
 // const { controller } = require('./controllers');
 const connection = mysql.createConnection(dbconfig)
-// app.use(express.static('public'));
 app.use(bodyParser.urlencoded({ extended: true }))
-const AWS = require('aws-sdk');
-
 
 connection.connect(function(err) {
 	if (err) throw err;
@@ -27,30 +24,12 @@ app.get('/select', (req, res) => {
 	res.send('검색방법 선택')
 })
 
-
-const { v4 } = require('uuid');
-console.log(v4());
-const uuid = v4();
-
-const multer = require('multer');
-const multerS3 = require('multer-s3');
-
-const s3 = new AWS.S3();
-const upload = multer({  
-	storage: multerS3({       
-		s3: s3,
-		bucket: 'user-pills',
-		key: function (req, file, cb) {
-		cb(null, `${Date.now()}${uuid}`);
-		},
-	}),
-});
-
-app.post('/upload', upload.single('test'), (req, res) => {
+//db에 링크랑 아이디 저장해야돼서 /upload/:id로 아이디를 받아야 할듯?
+app.post('/upload', upload.single('test'), (req, res) => { 
 	const input = req.body
 	console.log(req.file);
 	// res.json({ url: req.file.location }); //file.location이 이미지 저장된 링크
-	connection.query(`insert into pill_image_url values(${input.id}, '${req.file.location}')`), (err, rows, fields) => {
+	connection.query(`insert into pill_image_url values(${ input.id }, '${ req.file.location }')`), (err, rows, fields) => {
 		if (err) {
 			return res.json({ success: false, err });
 		}
@@ -87,12 +66,14 @@ app.get('/info', (req, res) => {
 	res.send('검색 중')
 })
 
+app.use((req, res, next) => {
+	res.status(404).send('Not Found');
+});
+
 // router.post('/image', upload.single('image'), controller.image.post);
 
 app.listen(port, () => {
 	console.log(`Example app listening on port ${port}!`)
 }) 
-
-
 
 // connection.end()
