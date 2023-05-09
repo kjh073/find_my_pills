@@ -28,7 +28,7 @@ app.get('/select', (req, res) => {
 app.post('/upload', upload.single('test'), (req, res) => { 
 	const input = req.body
 	console.log(req.file);
-	// res.json({ url: req.file.location }); //file.location이 이미지 저장된 링크
+	//file.location이 이미지 저장된 링크
 	connection.query(`insert into pill_image_url values(${ input.id }, '${ req.file.location }')`), (err, rows, fields) => {
 		if (err) {
 			return res.json({ success: false, err });
@@ -55,9 +55,9 @@ app.post('/check', (req, res) => {
 	//식별문자 앞 뒤가 있네,, 뒷편 문자는 optional한디 그러면 어쨌든 빈값 들어오는거 고려해야
 	//분할선도 앞 뒤가 있네,,,
 	//sql문 줄여야할 것 같은데 escape vs ?
-	connection.query('select * from pills where char_front=? and line_front=? and shape=? pill_type=?and color=?', [input.shape, input.color], (err, rows, fields) => {
+	connection.query('select * from pills where char_front=? and line_front=? and shape=? pill_type=? and color=?', [input.shape, input.color], (err, rows, fields) => {
 		if(err) return res.json({ success: false, err })
-		res.send(rows)
+		res.send(row.name)
 	// 클라이언트로 식별번호나 약 이름 전달
 	})
 })
@@ -67,8 +67,17 @@ app.get('/info', (req, res) => {
 })
 
 app.use((req, res, next) => {
-	res.status(404).send('Not Found');
-});
+	const error =  new Error(`${req.method} ${req.url} 라우터가 없습니다.`);
+	error.status = 404;
+	next(error);
+  });
+  
+  app.use((err, req, res, next) => {
+	res.locals.message = err.message;
+	res.locals.error = process.env.NODE_ENV !== 'production' ? err : {};
+	res.status(err.status || 500);
+	res.render('error');
+  });
 
 // router.post('/image', upload.single('image'), controller.image.post);
 

@@ -1,12 +1,13 @@
 const AWS = require('aws-sdk');
+const multer = require('multer');
+const multerS3 = require('multer-s3');
 
+// 파일 이름을 위한 uuid 생성
 const { v4 } = require('uuid');
 console.log(v4());
 const uuid = v4();
 
-const multer = require('multer');
-const multerS3 = require('multer-s3');
-
+// 이미지 저장할 곳
 const s3 = new AWS.S3();
 const upload = multer({  
 	storage: multerS3({       
