@@ -2,8 +2,8 @@ const express = require('express')
 const app = express() 
 const port = 3000 
 const mysql = require('mysql')
-const connection = mysql.createConnection(dbconfig)
 const dbconfig = require('./config/database.js')
+const connection = mysql.createConnection(dbconfig)
 const s3config = require('./config/s3.js')
 const bodyParser = require('body-parser')
 const upload = require('./modules/multer.js');
@@ -21,41 +21,44 @@ app.get('/', (req, res) => {
 })
 
 // app.use('/', uploadRouter);
-app.post('/upload/front', upload.single('img'), (req, res) => { 
-	const input = req.body
-	// console.log(req.file)
-	//파일 크기 5MB 제한
-	if (req.file && req.file.size > upload.limits.fileSize) {
-		return res.status(413).send({ error: 'File too large' });
-	}
-	//db에 사용자 id와 이미지 저장된 링크 저장
-	connection.query(`insert into pill_image_url values(${input.id}, '${req.file.location}')`, (err, rows) => {
-		if (err) {
-			return res.json({ success: false, err });
-		}
-		return res.status(200).json({
-			success: true
-		})
-		// res.send(rows);
-	});
-});
+// app.post('/upload/front', upload.single('img'), (req, res) => { 
+// 	const input = req.body
+// 	// console.log(req.file)
+// 	//파일 크기 5MB 제한
+// 	if (req.file && req.file.size > upload.limits.fileSize) {
+// 		return res.status(413).send({ error: 'File too large' });
+// 	}
+// 	//db에 사용자 id와 이미지 저장된 링크 저장
+// 	connection.query(`insert into pill_image_url values(${input.id}, '${req.file.location}')`, (err, rows) => {
+// 		if (err) {
+// 			return res.json({ success: false, err });
+// 		}
+// 		return res.status(200).json({
+// 			success: true
+// 		})
+// 		// res.send(rows);
+// 	});
+// });
 
-app.post('/upload/back', upload.single('img'), (req, res) => { 
+app.post('/upload', upload.array('img'), (req, res) => { 
 	const input = req.body
-	// console.log(req.file)
-	//파일 크기 5MB 제한
-	if (req.file && req.file.size > upload.limits.fileSize) {
-		return res.status(413).send({ error: 'File too large' });
-	}
-	//db에 사용자 id와 일치하는 이미지 저장된 링크 저장
-	connection.query(`update pill_image_url set image_url_back=${req.file.location} where id = ${input.id}`, (err, rows) => {
-		if (err) {
-			return res.json({ success: false, err });
+	let files  = req.files
+	// return res.json({success: true})
+	for (let i = 0; i < files.length ; i++ ) {
+		// 파일 크기 5MB 제한
+		if (files[i] && files[i].size > upload.limit) {
+			return res.status(413).send({ error: 'File too large' });
 		}
-		return res.status(200).json({
-			success: true
-		})
-		// res.send(rows);
+	}
+	// db에 사용자 id와 일치하는 이미지 저장된 링크 저장
+	connection.query(`insert into pill_image_url values(${input.id}, '${files[0].location}', '${files[1].location}')`, (err, rows) => {
+	if (err) {
+		return res.json({ success: false, err });
+	}
+	return res.status(200).json({
+		success: true
+	})
+	// res.send(rows);
 	});
 });
 
@@ -84,15 +87,15 @@ app.post('/search/text', (req, res) => {
 app.use((req, res, next) => {
 	const error =  new Error(`${req.method} ${req.url} 라우터가 없습니다.`);
 	error.status = 404;
-	next(error);
+	res.json({ index_success: false, error });
   });
   
-  app.use((err, req, res, next) => {
-	res.locals.message = err.message;
-	res.locals.error = process.env.NODE_ENV !== 'production' ? err : {};
-	res.status(err.status || 500);
-	res.json({ index_success: false, err });
-  });
+// app.use((err, req, res, next) => {
+// 	res.locals.message = err.message;
+// 	res.locals.error = process.env.NODE_ENV !== 'production' ? err : {};
+// 	res.status(err.status || 500);
+// 	res.json({ index_success: false, err });
+// });
 
 // router.post('/image', upload.single('image'), controller.image.post);
 
