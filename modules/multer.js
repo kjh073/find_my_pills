@@ -13,7 +13,6 @@ const upload = multer({
 		s3: s3,
 		bucket: 'user-pills',
 		key: function (req, file, cb) {
-		// let extension = path.extname(file.originalname);
 		cb(null, `${Date.now()}${uuid}` + `${file.originalname}`) 
 		},
 	}),
