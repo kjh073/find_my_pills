@@ -6,7 +6,7 @@ const dbconfig = require('./config/database.js')
 const connection = mysql.createConnection(dbconfig)
 const s3config = require('./config/s3.js') //ssh에서는 없앰
 const bodyParser = require('body-parser')
-const upload = require('./modules/multer.js');
+const img_function = require('./modules/multer.js');
 const cors = require('cors')
 // const uploadRouter = require('./routes/uploadRouter');
 // const { controller } = require('./controllers');
@@ -24,16 +24,20 @@ app.get('/', (req, res) => {
 })
 
 // app.use('/', uploadRouter);
-app.post('/upload', upload.array('img'), (req, res) => { 
-	const input = req.body
-	let files  = req.files
-	for (let i = 0; i < files.length ; i++ ) {
+app.post('/upload', img_function.upload.array('img'), img_function.uploadErrorHandler, (req, res) => { 
+	const input = req.body;
+	const files  = req.files;
+	// 파일 업로드 실패
+	if (!files) {
+		return res.status(400).json({ success: false, message: 'File upload failed' });
+	}
+	for (let i = 0; i < files.length; i++) {
 		// 파일 크기 5MB 제한
-		if (files[i] && files[i].size > upload.limit) {
+		if (files[i] && files[i].size > img_function.upload.limit) {
 			return res.status(413).send({ error: 'File is too large' });
 		}
 	}
-	connection.query(`insert into pill_image_url values(${input.id}, '${files[0].location}', '${files[1].location}')`, (err, rows) => {
+	connection.query(`insert into pill_image_url values('${img_function.uuid}', '${files[0].location}', '${files[1].location}')`, (err, rows) => {
 	if (err) {
 		return res.json({ success: false, err });
 	}
@@ -44,9 +48,6 @@ app.post('/upload', upload.array('img'), (req, res) => {
 
 app.post('/search/text', (req, res) => {
 	const input = req.body
-	//식별문자 앞 뒤가 있네,, 뒷편 문자는 optional한디 그러면 어쨌든 빈값 들어오는거 고려해야
-	//근데 이렇게 쓰면 유저가 앞뒤를 어떻게 구별하지?
-	//분할선이 "분할선"이렇게 들어와야 돼서 정규식으로 해결
 	//char_front로 들어오는 알파벳에서 그 알파벳이 필수로 포함되면서 떨어져 있어도 되는 그런 식 없나?
 	// var sql = 'select name from pills where shape=? and pill_type=? and color_front=?'
 	// 	// and (char_front regexp \'[?]\' or char_back regexp \'[?]\')'
