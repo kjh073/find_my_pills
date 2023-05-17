@@ -8,6 +8,7 @@ const s3config = require('./config/s3.js') //ssh에서는 없앰
 const bodyParser = require('body-parser')
 const img_function = require('./modules/multer.js');
 const cors = require('cors')
+const { v4 } = require('uuid');
 // const uploadRouter = require('./routes/uploadRouter');
 // const { controller } = require('./controllers');
 
@@ -27,6 +28,7 @@ app.get('/', (req, res) => {
 app.post('/upload', img_function.upload.array('img'), img_function.uploadErrorHandler, (req, res) => { 
 	const input = req.body;
 	const files  = req.files;
+	const uuid = v4(); 
 	// 파일 업로드 실패
 	if (!files) {
 		return res.status(400).json({ success: false, message: 'File upload failed' });
@@ -37,7 +39,7 @@ app.post('/upload', img_function.upload.array('img'), img_function.uploadErrorHa
 			return res.status(413).send({ error: 'File is too large' });
 		}
 	}
-	connection.query(`insert into pill_image_url values('${img_function.uuid}', '${files[0].location}', '${files[1].location}')`, (err, rows) => {
+	connection.query(`insert into pill_image_url values('${uuid}', '${files[0].location}', '${files[1].location}')`, (err, rows) => {
 	if (err) {
 		return res.json({ success: false, err });
 	}
