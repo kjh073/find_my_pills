@@ -2,7 +2,6 @@ const AWS = require('aws-sdk');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
 
-
 // 파일 이름을 위한 uuid 생성
 const { v4 } = require('uuid');
 
@@ -17,7 +16,7 @@ const upload = multer({
 			cb(null, `${Date.now()}${uuid}` + `${file.originalname}`);
 		},
 	}),
-	limit: { filesize: 5 * 1024 * 1024 } //파일 크기 5MB 이하
+	limits: { filesize: 5 * 1024 * 1024 } //파일 크기 5MB 이하
 });
 
 const uploadErrorHandler = (err, req, res, next) => {

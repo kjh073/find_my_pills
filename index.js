@@ -35,7 +35,7 @@ app.post('/upload', img_function.upload.array('img'), img_function.uploadErrorHa
 	}
 	for (let i = 0; i < files.length; i++) {
 		// 파일 크기 5MB 제한
-		if (files[i] && files[i].size > img_function.upload.limit) {
+		if (files[i] && (files[i].size > img_function.upload.limits)) {
 			return res.status(413).send({ error: 'File is too large' });
 		}
 	}
@@ -43,7 +43,7 @@ app.post('/upload', img_function.upload.array('img'), img_function.uploadErrorHa
 	if (err) {
 		return res.json({ success: false, err });
 	}
-	return res.status(200).json({ success: true })
+	return res.status(200).json({ success: true, name : '가스디알정50밀리그램(디메크로틴산마그네슘)' })
 	// res.send(rows);
 	});
 });
