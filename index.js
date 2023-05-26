@@ -13,6 +13,7 @@ const { v4 } = require('uuid');
 // const { controller } = require('./controllers');
 
 app.use(bodyParser.urlencoded({ extended: true }))
+app.use(bodyParser.json())
 app.use(cors())
 
 connection.connect(err => {
@@ -50,31 +51,79 @@ app.post('/upload', img_function.upload.array('img'), img_function.uploadErrorHa
 
 app.post('/search/text', (req, res) => {
 	const input = req.body
-	//char_front로 들어오는 알파벳에서 그 알파벳이 필수로 포함되면서 떨어져 있어도 되는 그런 식 없나?
-	// var sql = 'select name from pills where shape=? and pill_type=? and color_front=?'
-	// 	// and (char_front regexp \'[?]\' or char_back regexp \'[?]\')'
-	// var sql = 'select name from pills where (char_front=? or char_back=?) and (line_front=? or line_back=?) and shape=? pill_type=? and color=?'
-	// var params = [input.shape, input.pill_type, input.color, input.char_front, input.char_front]
-	var sql = 'SELECT name FROM pills WHERE shape=? AND pill_type=? AND color_front=? AND (char_front regexp "[?]" OR char_back regexp "[?]")';
-	var params = [input.shape, input.pill_type, input.color, input.char_front, input.char_front];
+	var param_cnt = 0;
+	var sql = 'SELECT count(*) FROM pills WHERE ';
+	var params = [];
+	var prop = []
 
-	if (input.line != '-') {
-		sql += 'and (char_front regexp ? OR char_back regexp ?)'
+	if (input.shape != '전체') {
+		if (param_cnt != 0) {
+			sql += ' AND '
+		}
+		sql += 'shape=?'
+		params.push(input.shape)
+		prop.push('shape')
+		param_cnt += 1
+	}
+	if (input.pill_type != '전체') {
+		if (param_cnt != 0) {
+			sql += ' AND '
+		}
+		if (input.pill_type == '기타') {
+			sql += 'pill_type not in ("정제", "경질캡슐제", "연질캡슐제")'
+		} else {
+			sql += 'pill_type regexp ?'
+			params.push(input.pill_type)
+			prop.push('pill_type')
+		}
+		param_cnt += 1
+	}
+	if (input.color != '전체') {
+		if (param_cnt != 0) {
+			sql += ' AND '
+		}
+		sql += 'color_front=?'
+		params.push(input.color)
+		prop.push('color')
+		param_cnt += 1
+	}
+	if (input.char_front) {
+		if (param_cnt != 0) {
+			sql += ' AND '
+		}
+		sql += '(char_front regexp "[?]" OR char_back regexp "[?]")'
+		params.push(input.char_front)
+		params.push(input.char_front)
+		prop.push('char_front')
+		param_cnt += 1
+	}
+	if (input.line != '전체' || input.line != '-') {
+		if (param_cnt != 0) {
+			sql += ' AND '
+		}
+		sql += '(char_front regexp ? OR char_back regexp ?)'
 		params.push(input.line)
 		params.push(input.line)
+		prop.push('line')
+		param_cnt += 1
 	}
 	if (input.char_back) {
-		sql += 'and (char_front=? OR char_back=?)'
+		if (param_cnt != 0) {
+			sql += ' AND '
+		}
+		sql += '(char_front=? OR char_back=?)'
 		params.push(input.char_back)
 		params.push(input.char_back)
+		prop.push('char_back')
+		param_cnt += 1
 	}
 	// 클라이언트로 식별번호나 약 이름 전달
 	connection.query(sql, params, (err, row) => {
+		// var json = JSON.parse(input);
 		if(err) return res.json({ success: false, err })
-		res.send(row)
+		res.json({row_count : row, sql: sql})
+		// res.json({ input_line : input.line, sql : sql, input : input, search_prop : prop })
 	})
-	// 만약에 검색해서 나온게 2개 이상이면 그 때 문자 뒷면 검색하면 될듯?
-	// 사람들한테 여러개 보여줄거면 할 필요 없음
 })
 
 app.use((req, res, next) => {
