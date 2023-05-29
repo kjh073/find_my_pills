@@ -9,6 +9,8 @@ const bodyParser = require('body-parser')
 const img_function = require('./modules/multer.js');
 const cors = require('cors')
 const { v4 } = require('uuid');
+var request = require('request');
+// const { PythonShell } = require('python-shell');
 // const uploadRouter = require('./routes/uploadRouter');
 // const { controller } = require('./controllers');
 
@@ -44,15 +46,64 @@ app.post('/upload', img_function.upload.array('img'), img_function.uploadErrorHa
 	if (err) {
 		return res.json({ success: false, err });
 	}
-	return res.status(200).json({ success: true, name : '가스디알정50밀리그램(디메크로틴산마그네슘)' })
-	// res.send(rows);
+
+	const modelResult = (callback)=>{
+		const options = {
+			method: 'POST',
+			uri: "http://127.0.0.1:5000/test",
+			qs: {
+				file_name: `${files[0].location},${files[1].location}`
+			}
+		}
+		request(options, function (err, res, body) {
+			callback(undefined, {
+				result:body
+			});
+		});
+	}
+
+	modelResult((err, {result}={})=>{
+		if(err){
+			console.log("error!!!!");
+			res.send({
+				message: "fail",
+				status: "fail"
+			});
+		}
+		let json = JSON.parse(result);
+		// res.send({
+		// 	message: "from flask",
+		// 	status: "success",
+		// 	data:{
+		// 		json
+		// 	}
+		// });
+		var sql = 'SELECT * FROM pills WHERE name=?';
+		var param = [json.result]
+		connection.query(sql, param, (err, row) => {
+			// var json = JSON.parse(input);
+			if(err) return res.json({ success: false, err })
+			return res.status(200).json({ success: true, name : `${json.result}`, pill_img : `${row[0].pill_img}` })
+			console.log(row.name)
+			res.json({ row_count : row, name : `${row.name}` })
+			// res.json({ input_line : input.line, sql : sql, input : input, search_prop : prop })
+	})
+
+	})
+	
+
+
+	// return res.status(200).json({ success: true, name : '가스디알정50밀리그램(디메크로틴산마그네슘)', pill_img : 'https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/147426403087300104' })
+
+
+
 	});
 });
 
 app.post('/search/text', (req, res) => {
 	const input = req.body
 	var param_cnt = 0;
-	var sql = 'SELECT count(*) FROM pills WHERE ';
+	var sql = 'SELECT * FROM pills WHERE ';
 	var params = [];
 	var prop = []
 
@@ -119,9 +170,9 @@ app.post('/search/text', (req, res) => {
 	}
 	// 클라이언트로 식별번호나 약 이름 전달
 	connection.query(sql, params, (err, row) => {
-		// var json = JSON.parse(input);
 		if(err) return res.json({ success: false, err })
-		res.json({row_count : row, sql: sql})
+		// console.log(row[0].name)
+		res.json({ row_count : row, sql: sql })
 		// res.json({ input_line : input.line, sql : sql, input : input, search_prop : prop })
 	})
 })
