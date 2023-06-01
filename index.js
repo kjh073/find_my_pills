@@ -81,22 +81,10 @@ app.post('/upload', img_function.upload.array('img'), img_function.uploadErrorHa
 		var sql = 'SELECT * FROM pills WHERE name=?';
 		var param = [json.result]
 		connection.query(sql, param, (err, row) => {
-			// var json = JSON.parse(input);
 			if(err) return res.json({ success: false, err })
-			return res.status(200).json({ success: true, name : `${json.result}`, pill_img : `${row[0].pill_img}` })
-			console.log(row.name)
-			res.json({ row_count : row, name : `${row.name}` })
-			// res.json({ input_line : input.line, sql : sql, input : input, search_prop : prop })
-	})
-
-	})
-	
-
-
-	// return res.status(200).json({ success: true, name : '가스디알정50밀리그램(디메크로틴산마그네슘)', pill_img : 'https://nedrug.mfds.go.kr/pbp/cmn/itemImageDownload/147426403087300104' })
-
-
-
+			return res.status(200).json({ success: true, name : `${json.result}`, pill_img : `${row[0].pill_img}`, id : `${row[0].id}` })
+			})
+		})
 	});
 });
 
@@ -171,9 +159,7 @@ app.post('/search/text', (req, res) => {
 	// 클라이언트로 식별번호나 약 이름 전달
 	connection.query(sql, params, (err, row) => {
 		if(err) return res.json({ success: false, err })
-		// console.log(row[0].name)
-		res.json({ row_count : row, sql: sql })
-		// res.json({ input_line : input.line, sql : sql, input : input, search_prop : prop })
+		res.json(row)
 	})
 })
 
