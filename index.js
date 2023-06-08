@@ -10,6 +10,7 @@ const img_function = require('./modules/multer.js');
 const cors = require('cors')
 const { v4 } = require('uuid');
 var request = require('request');
+const searchRouter = require('./routes/searchRouter');
 // const { PythonShell } = require('python-shell');
 // const uploadRouter = require('./routes/uploadRouter');
 // const { controller } = require('./controllers');
@@ -88,80 +89,7 @@ app.post('/upload', img_function.upload.array('img'), img_function.uploadErrorHa
 	});
 });
 
-app.post('/search/text', (req, res) => {
-	const input = req.body
-	var param_cnt = 0;
-	var sql = 'SELECT * FROM pills WHERE ';
-	var params = [];
-	var prop = []
-
-	if (input.shape != '전체') {
-		if (param_cnt != 0) {
-			sql += ' AND '
-		}
-		sql += 'shape=?'
-		params.push(input.shape)
-		prop.push('shape')
-		param_cnt += 1
-	}
-	if (input.pill_type != '전체') {
-		if (param_cnt != 0) {
-			sql += ' AND '
-		}
-		if (input.pill_type == '기타') {
-			sql += 'pill_type not in ("정제", "경질캡슐제", "연질캡슐제")'
-		} else {
-			sql += 'pill_type regexp ?'
-			params.push(input.pill_type)
-			prop.push('pill_type')
-		}
-		param_cnt += 1
-	}
-	if (input.color != '전체') {
-		if (param_cnt != 0) {
-			sql += ' AND '
-		}
-		sql += 'color_front=?'
-		params.push(input.color)
-		prop.push('color')
-		param_cnt += 1
-	}
-	if (input.char_front) {
-		if (param_cnt != 0) {
-			sql += ' AND '
-		}
-		sql += '(char_front regexp "[?]" OR char_back regexp "[?]")'
-		params.push(input.char_front)
-		params.push(input.char_front)
-		prop.push('char_front')
-		param_cnt += 1
-	}
-	if (input.line != '전체' || input.line != '-') {
-		if (param_cnt != 0) {
-			sql += ' AND '
-		}
-		sql += '(char_front regexp ? OR char_back regexp ?)'
-		params.push(input.line)
-		params.push(input.line)
-		prop.push('line')
-		param_cnt += 1
-	}
-	if (input.char_back) {
-		if (param_cnt != 0) {
-			sql += ' AND '
-		}
-		sql += '(char_front=? OR char_back=?)'
-		params.push(input.char_back)
-		params.push(input.char_back)
-		prop.push('char_back')
-		param_cnt += 1
-	}
-	// 클라이언트로 식별번호나 약 이름 전달
-	connection.query(sql, params, (err, row) => {
-		if(err) return res.json({ success: false, err })
-		res.json(row)
-	})
-})
+app.use('/', searchRouter);
 
 app.use((req, res, next) => {
 	const error =  new Error(`${req.method} ${req.url} 라우터가 없습니다.`);
