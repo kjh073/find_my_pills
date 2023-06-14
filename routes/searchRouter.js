@@ -86,7 +86,7 @@ router.post('/search/text', (req, res) => {
 			  }
 			}
 	  
-			if (matchCount > 0) {
+			if (matchCount > 0 && matchCount <= searchString.length) {
 			  idsToUpdate.push({ id: item.id, matchCount: matchCount });
 			}
 		  });
