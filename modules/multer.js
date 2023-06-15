@@ -13,7 +13,7 @@ const upload = multer({
 		bucket: 'user-pills',
 		key: function (req, file, cb) {
 			const uuid = v4(); 
-			cb(null, `${Date.now()}${uuid}` + `${file.originalname}`);
+			cb(null, `${Date.now()}${uuid}`);
 		},
 	}),
 	limits: { filesize: 5 * 1024 * 1024 } //파일 크기 5MB 이하
