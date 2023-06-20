@@ -23,8 +23,10 @@ app.get('/', (req, res) => {
 	res.send('main')
 })
 
+// 이미지 검색
 app.use('/', uploadRouter)
 
+// 직접 검색
 app.use('/', searchRouter)
 
 app.use((req, res, next) => {

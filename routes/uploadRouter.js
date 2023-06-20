@@ -23,63 +23,66 @@ router.post('/upload', image.upload.array('img'), image.uploadErrorHandler, (req
 		}
 	}
 
+	// db에 알약 앞, 뒷면 이미지 링크 저장, 사진 검색 실행
 	connection.query(`insert into pill_image_url values('${uuid}', '${files[0].location}', '${files[1].location}')`, (err, rows) => {
-    if (err) {
-      return res.json({ success: false, err })
-    }
+		if (err) {
+			return res.json({ success: false, err })
+		}
 
-    const modelResult = (callback) => {
-      const options = {
-        method: 'POST',
-        uri: "http://127.0.0.1:5000/search/image",
-        qs: {
-          file_name: `${files[0].location},${files[1].location}`
-        }
-      }
-      request(options, function (err, res, body) {
-        callback(undefined, {
-          result:body
-        })
-      })
-    }
+		// 딥러닝 서버로 이미지 링크 전달
+		const modelResult = (callback) => {
+			const options = {
+				method: 'POST',
+				uri: "http://127.0.0.1:5000/search/image",
+				qs: {
+				file_name: `${files[0].location},${files[1].location}`
+				}
+			}
+			request(options, function (err, res, body) {
+				callback(undefined, {
+				result:body
+				})
+			})
+		}
 
-    modelResult((err, {result} = {}) => {
-      if(err) {
-        console.log("error!")
-        res.send({
-          message: "fail",
-          status: "fail"
-        })
-      }
-      let json = JSON.parse(result)
-      var results = [json.result1, json.result2, json.result3, json.result4, json.result5]
-        var queryResults = []
+		// 검색한 알약의 이름을 반환 받은 후 알약 5개의 id값, 이름, 이미지 링크 클라이언트에 전달
+		modelResult((err, {result} = {}) => {
+			if(err) {
+				console.log("error!")
+				res.send({
+				message: "fail",
+				status: "fail"
+				})
+			}
+			let json = JSON.parse(result)
+			var results = [json.result1, json.result2, json.result3, json.result4, json.result5]
+			var queryResults = []
 
-      function queryDatabase(index) {
-        if (index >= results.length) {
-          return res.status(200).json(queryResults)
-        }
+			function queryDatabase(index) {
+				if (index >= results.length) {
+					return res.status(200).json(queryResults)
+				}
 
-        var sql = 'SELECT * FROM pills WHERE name = ?';
-        var param = [results[index]]
+				var sql = 'SELECT * FROM pills WHERE name = ?';
+				var param = [results[index]]
 
-        connection.query(sql, param, (err, row) => {
-        if (err) {
-          return res.json({ success: false, err })
-        }
+				connection.query(sql, param, (err, row) => {
+					if (err) {
+						return res.json({ success: false, err })
+					}
 
-        if (row[0]) {
-          queryResults.push({
-            name: `${results[index]}`,
-            pill_img: `${row[0].pill_img}`,
-            id: `${row[0].id}`
-          })
-        }
-        queryDatabase(index + 1)
-        })
-      }
-      queryDatabase(0)
-      })
+					if (row[0]) {
+						queryResults.push({
+							name: `${results[index]}`,
+							pill_img: `${row[0].pill_img}`,
+							id: `${row[0].id}`
+						})
+					}
+					queryDatabase(index + 1)
+				})
+			}
+			queryDatabase(0)
+		})
     })
 })
 
