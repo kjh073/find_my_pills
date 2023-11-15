@@ -11,6 +11,7 @@ router.post('/search/text', async (req, res) => {
 		let sql = 'SELECT * FROM pills WHERE ';
 		const params = []
 		const prop = []
+		let matchCount = 0
 		
 		// 유저가 입력하는 알약 속성이 optional하기에 해당 속성이 들어온다면 sql문에 추가
 		if (input.shape !== '전체') {
@@ -84,26 +85,49 @@ router.post('/search/text', async (req, res) => {
 	const idsToUpdate = []
   
 	row.forEach(item => {
-		let matchCount = 0
+		let matchCountF = 0
+		let matchCountB = 0
+		
 		const charFront = item.char_front.toLowerCase()
 		const charBack = item.char_back.toLowerCase()
   
-		let currentIndex = 0
-		let searchIndex = 0
-  
-		while (currentIndex < charFront.length && searchIndex < searchString.length) {
-		  	if (charFront[currentIndex] === searchString[searchIndex]) {
-			if (charBack.includes(searchString[searchIndex])) {
-			  	matchCount++
+		let currentIndexF = 0
+		let currentIndexB = 0
+		let searchIndexF = 0
+		let searchIndexB = 0
+		
+		console.log(charFront, charBack)
+		while ((currentIndexF < charFront.length && searchIndexF < searchString.length) 
+				&& (currentIndexB < charBack.length && searchIndexB < searchString.length)) {
+		  	if (charFront[currentIndexF] === searchString[searchIndexF]) {
+				matchCountF++
+				searchIndexF++
+				currentIndexF++
 			}
-			matchCount++
-			searchIndex++
-		  	}
-		  	currentIndex++
+			else if (charBack[currentIndexB] === searchString[searchIndexB]) {
+				matchCountB++
+				searchIndexB++
+				currentIndexB++
+			}
+			else {
+				currentIndexF++
+				currentIndexB++
+			}
+			if (searchIndexF > matchCountF || searchIndexB > matchCountB) {
+				if (searchIndexF > matchCountF) {
+					matchCountF = 0
+					searchIndexF = 0
+				}
+				if (searchIndexB > matchCountB) {
+					matchCountB = 0
+					searchIndexB = 0
+				}
+			}
 		}
-  
-		if (searchIndex === searchString.length && matchCount > 0 && matchCount <= searchString.length) {
-			idsToUpdate.push({ id: item.id, matchCount: matchCount })
+		if ((searchIndexF === searchString.length && matchCountF > 0 && matchCountF <= searchString.length)
+				|| (searchIndexB === searchString.length && matchCountB > 0 && matchCountB <= searchString.length)) {
+			matchCount = Math.max(matchCountF, matchCountB)
+			idsToUpdate.push({ id: item.id, match: matchCount})
 		}
 	})
 		// 일치하는 input각인이 없다면 각인을 제외한 속성들과 일치하는 알약 반환
@@ -115,11 +139,11 @@ router.post('/search/text', async (req, res) => {
 		await new Promise((resolve, reject) => {
 			const zeroQuery = 'UPDATE pills SET `match` = 0';
 			connection.query(zeroQuery, (err) => {
-			if (err) {
-				reject(err)
-			} else {
-				resolve()
-			}
+				if (err) {
+					reject(err)
+				} else {
+					resolve()
+				}
 			});
 		});
 		
@@ -128,7 +152,7 @@ router.post('/search/text', async (req, res) => {
 	
 		for (const item of idsToUpdate) {
 			await new Promise((resolve, reject) => {
-			connection.query(secondQuery, [item.matchCount, item.id], (err) => {
+			connection.query(secondQuery, [matchCount, item.id], (err) => {
 				if (err) {
 					reject(err)
 				} else {
